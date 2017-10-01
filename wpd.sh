@@ -172,6 +172,6 @@ elif [ "backup" == "$CMD" ]; then
 	wc "$filename"
 else
 	echo "Usage $0 [TARGET] [COMMAND]"
-	echo "... where COMMAND is one of these: start, stop, restart, toggle, install, uninstall"
+	echo "... where COMMAND is one of these: start, stop, restart, toggle, install, uninstall, backup"
 	echo "... and default target being 'multi'"
 fi
