@@ -163,6 +163,13 @@ elif [ "uninstall" == "$CMD" ]; then
 	wdp_stop "$TARGET"wp
 	wdp_uninstall_container "$TARGET"db
 	wdp_uninstall_container "$TARGET"wp
+elif [ "backup" == "$CMD" ]; then
+	echo "Backing up database"
+	dbname="$TARGET"db
+	filename="$WORKING"/backup/"$dbname"-$(date +%Y-%m-%d.%H-%m).sql
+	wdp_start $dbname
+	mysqldump -u root -ppassword -h "$dbname.dev" "$TARGET" > "$filename"
+	wc "$filename"
 else
 	echo "Usage $0 [TARGET] [COMMAND]"
 	echo "... where COMMAND is one of these: start, stop, restart, toggle, install, uninstall"
