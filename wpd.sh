@@ -190,7 +190,10 @@ elif [ "backup-db" == "$CMD" ]; then
 elif [ "restore-db" == "$CMD" ]; then
 	echo "Restoring database"
 	dbname="$TARGET"db
-	filename=$(ls -r "$WORKING"/backup/"$dbname"*.sql | sed -n '1p')
+	portion=${3:-}
+	filename=$(ls -r "$WORKING"/backup/"$dbname"*"$portion"*.sql | sed -n '1p')
+	if [[ ! -f "$filename" ]]; then exit; fi
+	echo "Restoring $TARGET DB from $filename"
 	mysql -u root -ppassword -h "$dbname.dev" "$TARGET" < "$filename"
 	echo "All done restoring from $filename"
 else
