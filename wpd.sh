@@ -142,13 +142,13 @@ CMD="toggle"
 WPDIMAGE="wpddev"
 
 # Format: $0 [TARGET] [COMMAND]
-if [ "$#" == 2 ]; then
+if [ $# -ge 2 ]; then
 	TARGET="$1"
 	CMD="$2"
 fi
 
 # Format $0 [TARGET] toggle (implicit)
-if [ "$#" == 1 ]; then
+if [ $# -eq 1 ]; then
 	TARGET="$1"
 fi
 
