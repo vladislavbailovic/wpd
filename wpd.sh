@@ -18,13 +18,18 @@ function wdp_next_ip {
 	echo "127.0.0.$oct"
 }
 
+function wdp_backup_hosts {
+	local infix=$(date +%Y-%m-%d.%H-%M)-${1:-'backup'}
+	sudo cp /etc/hosts ~/hosts.$infix.bkp
+}
+
 function wdp_uninstall_container {
 	if [[ ! -z $(wpd_has_container $1) ]]; then
 		echo "Removing container $1"
 		docker rm "$1"
 		local tempfile=$(mktemp hosts.XXXXXXXXX)
 		cat /etc/hosts | sed -e "/$1/d" >> "$tempfile"
-		sudo cp /etc/hosts ~/hosts.uninstall.bkp
+		wdp_backup_hosts "$1-uninstall"
 		sudo mv "$tempfile" /etc/hosts
 		echo "All done!"
 	else
@@ -39,7 +44,7 @@ function wdp_install_database {
 	if [[ -z $(wpd_has_container "$container") ]]; then
 		echo "Creating $container with DB $dbname on $nextip :3306"
 		docker run --name "$container" -e MYSQL_ROOT_PASSWORD=password -e MYSQL_DATABASE="$dbname" -d -p "$nextip":3306:3306 mysql:5.7
-		sudo cp /etc/hosts ~/hosts.install.bkp
+		wdp_backup_hosts "$1-install"
 		sudo echo "$nextip $container.dev #install" >> /etc/hosts
 		echo "All done"
 	else
@@ -75,7 +80,7 @@ function wdp_install_wordpress {
 			-v "$WORKING"/projects/plugins:/var/www/html/wp-content/plugins \
 			-v "$WORKING"/projects/themes:/var/www/html/wp-content/themes \
 			"$WPDIMAGE"
-		sudo cp /etc/hosts ~/hosts.install.bkp
+		wdp_backup_hosts "$1-install"
 		sudo echo "$nextip $container.dev #install" >> /etc/hosts
 	else
 		echo "Container $container already exists, won't install anything"
