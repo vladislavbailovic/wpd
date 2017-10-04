@@ -4,6 +4,14 @@ function wpd_has_container {
 	echo $(docker ps -a | grep "$1")
 }
 
+function wpd_has_image {
+	echo $(docker images | grep "$1")
+}
+
+function wpd_build_image {
+	docker build "$WORKING" -t $WPDIMAGE
+}
+
 function wdp_next_ip {
 	local oct=$(grep '127.0.0' /etc/hosts | awk '{ print $1 }' | sort -nr | sed -n '1 p' | cut -d . -f 4)
 	let "oct++"
@@ -46,6 +54,9 @@ function wdp_install_wordpress {
 	local dbcontainer="$wpname"db
 	local container="$wpname"wp
 	local nextip=$(wdp_next_ip)
+	if [[ -z $(wpd_has_image "$WPDIMAGE") ]]; then
+		wpd_build_image
+	fi
 	if [[ -z $(wpd_has_container "$container") ]]; then
 		echo "Creating $container WP setup $wpname in $wploc linked with $dbcontainer - it will run on $nextip"
 		if [ ! -d "$wproot" ]; then
@@ -53,17 +64,17 @@ function wdp_install_wordpress {
 			mkdir "$wproot"
 			chown www-data:www-data "$wproot"
 		fi
-		mkdir -p "$WORKING"/working/plugins
-		mkdir -p "$WORKING"/working/themes
+		mkdir -p "$WORKING"/projects/plugins
+		mkdir -p "$WORKING"/projects/themes
 		docker run \
 			-e WORDPRESS_DB_PASSWORD=password -d \
 			--name "$container" \
 			--link "$dbcontainer":mysql \
 			-p "$nextip":80:80 \
 			-v "$wploc":/var/www/html \
-			-v "$WORKING"/working/plugins:/var/www/html/wp-content/plugins \
-			-v "$WORKING"/working/themes:/var/www/html/wp-content/themes \
-			wordpress
+			-v "$WORKING"/projects/plugins:/var/www/html/wp-content/plugins \
+			-v "$WORKING"/projects/themes:/var/www/html/wp-content/themes \
+			"$WPDIMAGE"
 		sudo cp /etc/hosts ~/hosts.install.bkp
 		sudo echo "$nextip $container.dev #install" >> /etc/hosts
 	else
@@ -123,6 +134,7 @@ WORKING=$(dirname $0)
 WORKING=$(readlink -m "$WORKING")
 TARGET="multi"
 CMD="toggle"
+WPDIMAGE="wpddev"
 
 # Format: $0 [TARGET] [COMMAND]
 if [ "$#" == 2 ]; then
@@ -163,15 +175,21 @@ elif [ "uninstall" == "$CMD" ]; then
 	wdp_stop "$TARGET"wp
 	wdp_uninstall_container "$TARGET"db
 	wdp_uninstall_container "$TARGET"wp
-elif [ "backup" == "$CMD" ]; then
+elif [ "backup-db" == "$CMD" ]; then
 	echo "Backing up database"
 	dbname="$TARGET"db
 	filename="$WORKING"/backup/"$dbname"-$(date +%Y-%m-%d.%H-%m).sql
 	wdp_start $dbname
 	mysqldump -u root -ppassword -h "$dbname.dev" "$TARGET" > "$filename"
 	wc "$filename"
+elif [ "restore-db" == "$CMD" ]; then
+	echo "Restoring database"
+	dbname="$TARGET"db
+	filename=$(ls -r "$WORKING"/backup/"$dbname"*.sql | sed -n '1p')
+	mysql -u root -ppassword -h "$dbname.dev" "$TARGET" < "$filename"
+	echo "All done restoring from $filename"
 else
 	echo "Usage $0 [TARGET] [COMMAND]"
-	echo "... where COMMAND is one of these: start, stop, restart, toggle, install, uninstall, backup"
+	echo "... where COMMAND is one of these: start, stop, restart, toggle, install, uninstall, backup-db, restore-db"
 	echo "... and default target being 'multi'"
 fi
