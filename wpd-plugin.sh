@@ -62,7 +62,11 @@ function wpd_add_bin_dir {
 		if [[ -f "$script" ]]; then
 			if [[ ! -f "$dest" ]]; then
 				echo "Copying script to destination"
-				sed -e "s/WPD_PLUGIN/$PLUGIN/g" $script
+				sed \
+					-e "s/WPD_PLUGIN/$PLUGIN/g" \
+					-e "s/WPD_DB_ROOT/$WPD_DB_ROOT/g" \
+					-e "s/WPD_DB_PASS/$WPD_DB_PASS/g" \
+				"$script"
 			fi
 		fi
 	done
