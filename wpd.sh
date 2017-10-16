@@ -196,51 +196,8 @@ elif [ "restore-db" == "$CMD" ]; then
 	echo "Restoring $TARGET DB from $filename"
 	mysql -u root -ppassword -h "$dbname.dev" "$TARGET" < "$filename"
 	echo "All done restoring from $filename"
-elif [ "checkout" == "$CMD" ]; then
-	current="$PWD"
-	plugin=${3:-}
-	if [ "" == "$plugin" ]; then
-		echo -e "Usage:\n\t$0 $TARGET $CMD PLUGIN"
-		exit
-	fi
-	cd "$WORKING"/projects/plugins
-	if [ ! -d "$plugin" ]; then
-		echo "Clone the plugin..."
-	else
-		echo "Plugin already exists, not re-cloning"
-	fi
-	cd "$plugin"
-	git submodule init
-	git submodule update --recursive
-	if [ ! -d logs ]; then
-		echo "No logs dir, creating directory and log symlinks to follow"
-		mkdir logs
-		sudo ln -s "$WORKING"/wordpress/"$TARGET"/wp-content/debug.log logs/"$TARGET"-debug.log
-	else
-		echo "Already have logs, not re-creating logs dir"
-	fi
-	if [ ! -f .gitignore ]; then
-		echo "No gitignore, creating one"
-		echo "logs/" >> .gitignore
-	else
-		echo "Checking gitignore for logs"
-		has_logs=$(grep 'logs' .gitignore)
-		if [ "" == "$has_logs" ]; then
-			echo "Adding logs to gitignore"
-			echo "logs/" >> .gitignore
-		else
-			echo "Logs already in gitignore: $has_logs"
-		fi
-	fi
-	if [ -f package.json ]; then
-		echo "We have NPM package file, setting up"
-		npm install
-	else
-		echo "No package.json, skipping setup"
-	fi
-	cd .. #return to plugins
 else
 	echo "Usage $0 [TARGET] [COMMAND]"
-	echo "... where COMMAND is one of these: start, stop, restart, toggle, install, uninstall, backup-db, restore-db"
+	echo "... where COMMAND is one of these: start, stop, restart, toggle, install, uninstall, backup-db, restore-db <SEARCH>"
 	echo "... and default target being 'multi'"
 fi
