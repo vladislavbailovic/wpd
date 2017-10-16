@@ -47,7 +47,7 @@ function wpd_add_logs_dir {
 	cd "$current"
 }
 
-function wpd_expand_file_vars {
+function wpd_expand_script_vars {
 	local src=${1:-}
 	local dest=${2:-}
 	echo "Changing $src to $dest $WPD_PROJECT_BIN_PATH"
@@ -59,6 +59,7 @@ function wpd_expand_file_vars {
 			-e "s/WPD_DB_PASS/$WPD_DB_PASS/g" \
 			-e "s!WPD_PROJECT_BIN_PATH!$WPD_PROJECT_BIN_PATH!g" \
 		"$src" >> "$dest"
+		chmod u+x "$dest"
 	fi
 }
 
@@ -72,7 +73,7 @@ function wpd_add_git_hooks {
 
 		if [[ ! -f "$plugdir"/.git/hooks/post-commit ]]; then
 			echo "No post commit hook, making our own"
-			wpd_expand_file_vars "$WORKING/src-wpd/hooks/post-commit" "$plugdir"/.git/hooks/post-commit
+			wpd_expand_script_vars "$WORKING/src-wpd/hooks/post-commit" "$plugdir"/.git/hooks/post-commit
 			wpd_gitignore_add "*.tags"
 		fi
 
@@ -81,7 +82,7 @@ function wpd_add_git_hooks {
 		# 	local hascs=$(which phpcs)
 		# 	if [ "" != "$hascs" ]; then
 		# 		echo "No pre commit hook, making our own"
-		# 		wpd_expand_file_vars "$WORKING/src-wpd/hooks/pre-commit" "$plugdir"/.git/hooks/pre-commit
+		# 		wpd_expand_script_vars "$WORKING/src-wpd/hooks/pre-commit" "$plugdir"/.git/hooks/pre-commit
 		# 	fi
 		# else
 		# 	echo "We already have pre-commit hook, give up"
@@ -147,7 +148,7 @@ function wpd_add_bin_dir {
 		if [[ -f "$script" ]]; then
 			if [[ ! -f "$dest" ]]; then
 				echo "Copying script to destination"
-				wpd_expand_file_vars $script $dest
+				wpd_expand_script_vars $script $dest
 			fi
 		fi
 	done
