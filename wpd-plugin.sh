@@ -47,9 +47,37 @@ function wpd_add_logs_dir {
 	cd "$current"
 }
 
+function wpd_expand_file_vars {
+	local src=${1:-}
+	local dest=${2:-}
+	echo "Changing $src to $dest $WPD_PROJECT_BIN_PATH"
+	if [[ -f "$src" ]]; then
+		sed \
+			-e "s/WPD_PLUGIN/$PLUGIN/g" \
+			-e "s/WPD_DB_ROOT/$WPD_DB_ROOT/g" \
+			-e "s/WPD_DB_PASS/$WPD_DB_PASS/g" \
+			-e "s!WPD_PROJECT_BIN_PATH!$WPD_PROJECT_BIN_PATH!g" \
+		"$src"
+	fi
+	exit 1;
+}
+
 function wpd_add_bin_dir {
 	local current="$PWD"
-	cd "$WORKING"/projects/plugins/"$PLUGIN"
+	local plugdir="$WORKING"/projects/plugins/"$PLUGIN"
+	cd "$plugdir"
+
+	if [[ -d "$plugdir"/.git ]]; then
+		echo "Is git directory, check hooks"
+		if [[ ! -f "$plugdir"/.git/hooks/post-commit ]]; then
+			echo "No post commit hook, making our own"
+			wpd_expand_file_vars "$WORKING/src-wpd/hooks/post-commit" "$plugdir"/.git/hooks/post-commit
+		else
+			echo "Post commit hook is there, give it up"
+		fi
+	fi
+
+exit 1
 
 	if [ ! -d bin ]; then
 		echo "No bin dir, creating directory and log symlinks to follow"
@@ -58,20 +86,45 @@ function wpd_add_bin_dir {
 		echo "Already have bin, not re-creating bin dir"
 	fi
 	for script in "$WORKING"/src-wpd/scripts/*.sh; do
-		local dest="$WORKING"/projects/plugins/"$PLUGIN"/$(basename "$script")
+		local dest="$plugdir"/$(basename "$script")
 		if [[ -f "$script" ]]; then
 			if [[ ! -f "$dest" ]]; then
 				echo "Copying script to destination"
-				sed \
-					-e "s/WPD_PLUGIN/$PLUGIN/g" \
-					-e "s/WPD_DB_ROOT/$WPD_DB_ROOT/g" \
-					-e "s/WPD_DB_PASS/$WPD_DB_PASS/g" \
-				"$script"
+				wpd_expand_file_vars $script $dest
 			fi
 		fi
 	done
-	exit 1
 	wpd_gitignore_add "bin/"
+
+	if [[ ! -f "$plugdir"/phpcs.ruleset.xml ]]; then
+		echo "Adding ruleset file"
+		cp "$WORKING"/src-wpd/phpcs.ruleset.xml "$plugdir"/phpcs.ruleset.xml
+	fi
+
+	if [[ ! -d "$plugdir"/tests ]]; then
+		echo "Creating tests dir with default setup"
+		mkdir "$plugdir"/tests
+		cp "$WORKING"/src-wpd/phpunit.xml.suffix "$plugdir"/phpunit.xml
+	elif [[ ! -f "$plugdir"/phpunit.xml ]]; then
+		echo "Tests dir with no phpunit, creating from template"
+		local phpsfx=""
+		local suffixsfx="suffix"
+		if [[ -d "$plugdir"/tests/php ]]; then
+			phpsfx=".phpdir"
+			if [ $(ls "$plugdir"/tests/php/test-*.php | wc -l) -gt 0 ]; then
+				suffixsfx="prefix"
+			fi
+		else
+			if [ $(ls "$plugdir"/tests/test-*.php | wc -l) -gt 0 ]; then
+				suffixsfx="prefix"
+			fi
+		fi
+		local phpunit="phpunit.xml$phpsfx.$suffixsfx"
+		if [[ -f "$WORKING"/src-wpd/"$phpunit" ]]; then
+			echo "Copying file $phpunit"
+			cp "$WORKING"/src-wpd/"$phpunit" "$plugdir"/phpunit.xml
+		fi
+	fi
 
 	cd "$current"
 }
@@ -102,7 +155,7 @@ function wpd_plugin_equip {
 	local current="$PWD"
 	cd "$WORKING"/projects/plugins/"$PLUGIN"
 
-	wpd_add_logs_dir
+	#wpd_add_logs_dir
 	wpd_add_bin_dir
 
 	cd "$current"
@@ -138,6 +191,8 @@ else
 	echo "Missing config file, aborting"
 	exit 1
 fi
+
+WPD_PROJECT_BIN_PATH="$WORKING"/projects/plugins/"$PLUGIN"
 
 if [ "checkout" == "$CMD" ]; then
 	wpd_checkout
