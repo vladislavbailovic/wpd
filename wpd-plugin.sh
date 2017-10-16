@@ -47,6 +47,31 @@ function wpd_add_logs_dir {
 	cd "$current"
 }
 
+function wpd_add_bin_dir {
+	local current="$PWD"
+	cd "$WORKING"/projects/plugins/"$PLUGIN"
+
+	if [ ! -d bin ]; then
+		echo "No bin dir, creating directory and log symlinks to follow"
+		mkdir bin
+	else
+		echo "Already have bin, not re-creating bin dir"
+	fi
+	for script in "$WORKING"/src-wpd/scripts/*.sh; do
+		local dest="$WORKING"/projects/plugins/"$PLUGIN"/$(basename "$script")
+		if [[ -f "$script" ]]; then
+			if [[ ! -f "$dest" ]]; then
+				echo "Copying script to destination"
+				sed -e "s/WPD_PLUGIN/$PLUGIN/g" $script
+			fi
+		fi
+	done
+	exit 1
+	wpd_gitignore_add "bin/"
+
+	cd "$current"
+}
+
 function wpd_gitignore_add {
 	local current="$PWD"
 	local what=${1:-}
@@ -65,6 +90,16 @@ function wpd_gitignore_add {
 			echo "$what already in gitignore: $has_logs"
 		fi
 	fi
+
+	cd "$current"
+}
+
+function wpd_plugin_equip {
+	local current="$PWD"
+	cd "$WORKING"/projects/plugins/"$PLUGIN"
+
+	wpd_add_logs_dir
+	wpd_add_bin_dir
 
 	cd "$current"
 }
@@ -101,12 +136,10 @@ else
 fi
 
 if [ "checkout" == "$CMD" ]; then
-	if [ "" == "$PLUGIN" ]; then
-		wpd_usage
-		exit 1
-	fi
 	wpd_checkout
 	wpd_git_submodules
-	wpd_add_logs_dir
 	wpd_npm_setup
+	wpd_plugin_equip
+elif [ "equip" == "$CMD" ]; then
+	wpd_plugin_equip
 fi
