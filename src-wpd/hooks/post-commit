@@ -1,0 +1,3 @@
+#!/bin/bash
+
+WPD_PROJECT_BIN_PATH/mkctags.sh > /dev/null 2>&1 &

@@ -54,47 +54,47 @@ function wpd_expand_file_vars {
 	if [[ -f "$src" ]]; then
 		sed \
 			-e "s/WPD_PLUGIN/$PLUGIN/g" \
+			-e "s!WPD_PLUGIN_DIR!$WORKING/projects/plugins/$PLUGIN!g" \
 			-e "s/WPD_DB_ROOT/$WPD_DB_ROOT/g" \
 			-e "s/WPD_DB_PASS/$WPD_DB_PASS/g" \
 			-e "s!WPD_PROJECT_BIN_PATH!$WPD_PROJECT_BIN_PATH!g" \
-		"$src"
+		"$src" >> "$dest"
 	fi
-	exit 1;
 }
 
-function wpd_add_bin_dir {
+function wpd_add_git_hooks {
 	local current="$PWD"
 	local plugdir="$WORKING"/projects/plugins/"$PLUGIN"
 	cd "$plugdir"
 
 	if [[ -d "$plugdir"/.git ]]; then
 		echo "Is git directory, check hooks"
+
 		if [[ ! -f "$plugdir"/.git/hooks/post-commit ]]; then
 			echo "No post commit hook, making our own"
 			wpd_expand_file_vars "$WORKING/src-wpd/hooks/post-commit" "$plugdir"/.git/hooks/post-commit
-		else
-			echo "Post commit hook is there, give it up"
+			wpd_gitignore_add "*.tags"
 		fi
+
+		### this is still a little bit hardcore
+		# if [[ ! -f "$plugdir"/.git/hooks/pre-commit ]]; then
+		# 	local hascs=$(which phpcs)
+		# 	if [ "" != "$hascs" ]; then
+		# 		echo "No pre commit hook, making our own"
+		# 		wpd_expand_file_vars "$WORKING/src-wpd/hooks/pre-commit" "$plugdir"/.git/hooks/pre-commit
+		# 	fi
+		# else
+		# 	echo "We already have pre-commit hook, give up"
+		# fi
 	fi
 
-exit 1
+	cd "$current"
+}
 
-	if [ ! -d bin ]; then
-		echo "No bin dir, creating directory and log symlinks to follow"
-		mkdir bin
-	else
-		echo "Already have bin, not re-creating bin dir"
-	fi
-	for script in "$WORKING"/src-wpd/scripts/*.sh; do
-		local dest="$plugdir"/$(basename "$script")
-		if [[ -f "$script" ]]; then
-			if [[ ! -f "$dest" ]]; then
-				echo "Copying script to destination"
-				wpd_expand_file_vars $script $dest
-			fi
-		fi
-	done
-	wpd_gitignore_add "bin/"
+function wpd_add_php_configs {
+	local current="$PWD"
+	local plugdir="$WORKING"/projects/plugins/"$PLUGIN"
+	cd "$plugdir"
 
 	if [[ ! -f "$plugdir"/phpcs.ruleset.xml ]]; then
 		echo "Adding ruleset file"
@@ -129,6 +129,34 @@ exit 1
 	cd "$current"
 }
 
+function wpd_add_bin_dir {
+	local current="$PWD"
+	local plugdir="$WORKING"/projects/plugins/"$PLUGIN"
+	cd "$plugdir"
+
+	if [ ! -d bin ]; then
+		echo "No bin dir, creating directory and log symlinks to follow"
+		mkdir bin
+	else
+		echo "Already have bin, not re-creating bin dir"
+	fi
+
+	for script in "$WORKING"/src-wpd/scripts/*.sh; do
+		local dest="$plugdir"/bin/$(basename "$script")
+		echo "Checking $dest existence";
+		if [[ -f "$script" ]]; then
+			if [[ ! -f "$dest" ]]; then
+				echo "Copying script to destination"
+				wpd_expand_file_vars $script $dest
+			fi
+		fi
+	done
+	wpd_gitignore_add "bin/"
+	wpd_add_php_configs
+
+	cd "$current"
+}
+
 function wpd_gitignore_add {
 	local current="$PWD"
 	local what=${1:-}
@@ -155,8 +183,9 @@ function wpd_plugin_equip {
 	local current="$PWD"
 	cd "$WORKING"/projects/plugins/"$PLUGIN"
 
-	#wpd_add_logs_dir
+	wpd_add_logs_dir
 	wpd_add_bin_dir
+	wpd_add_git_hooks
 
 	cd "$current"
 }
