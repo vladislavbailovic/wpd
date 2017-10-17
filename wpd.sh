@@ -1,5 +1,19 @@
 #!/bin/bash
 
+function wpd_usage {
+	echo -e "Usage:\n\t$0 TARGET COMMAND"
+	echo -e "... where COMMAND is one of these:"
+	echo -e "\tstart - starts WP/DB container combo"
+	echo -e "\tstop - stops WP/DB container combo"
+	echo -e "\trestart - stops, then starts WP/DB container combo"
+	echo -e "\ttoggle - toggle WP/DB container combo state"
+	echo -e "\tinstall - install new WP/DB container, pulling/creating images as needed. Also adds stuff to hosts file"
+	echo -e "\tuninstall - removes container combo and hosts entry, leaves images and files though"
+	echo -e "\tbackup-db - backs up DB into a timestamped SQL file"
+	echo -e "\trestore-db [SEARCH_STRING] - restores DB from a SQL file. Defaults to latest, or tries to match the optional SEARCH_STRING"
+	exit 1
+}
+
 function wpd_has_container {
 	echo $(docker ps -a | grep "$1")
 }
@@ -137,9 +151,13 @@ function wdp_toggle {
 
 WORKING=$(dirname $0)
 WORKING=$(readlink -m "$WORKING")
-TARGET="multi"
-CMD="toggle"
+TARGET=""
+CMD=""
 WPDIMAGE="wpddev"
+
+if [ $# -lt 2 ]; then
+	wpd_usage
+fi
 
 # Format: $0 [TARGET] [COMMAND]
 if [ $# -ge 2 ]; then
@@ -147,9 +165,8 @@ if [ $# -ge 2 ]; then
 	CMD="$2"
 fi
 
-# Format $0 [TARGET] toggle (implicit)
-if [ $# -eq 1 ]; then
-	TARGET="$1"
+if [ "" == "$TARGET" ]; then
+	wpd_usage
 fi
 
 if [ "start" == "$CMD" ]; then
@@ -197,7 +214,5 @@ elif [ "restore-db" == "$CMD" ]; then
 	mysql -u root -ppassword -h "$dbname.dev" "$TARGET" < "$filename"
 	echo "All done restoring from $filename"
 else
-	echo "Usage $0 [TARGET] [COMMAND]"
-	echo "... where COMMAND is one of these: start, stop, restart, toggle, install, uninstall, backup-db, restore-db <SEARCH>"
-	echo "... and default target being 'multi'"
+	wpd_usage
 fi
