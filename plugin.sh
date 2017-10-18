@@ -32,17 +32,22 @@ function wpd_add_logs_dir {
 	if [ ! -d logs ]; then
 		echo "No logs dir, creating directory and log symlinks to follow"
 		mkdir logs
-		for directory in "$WORKING"/wordpress/*/; do
-			local dir=$(basename "$directory")
-			if [[ -f "$directory"wp-content/debug.log ]]; then
-				echo "Linking default WP log for $dir"
-				sudo ln -s "$directory"wp-content/debug.log logs/"$dir"-debug.log
-			fi
-		done
 	else
 		echo "Already have logs, not re-creating logs dir"
 	fi
 	wpd_gitignore_add "logs/"
+
+	for directory in "$WORKING"/wordpress/*/; do
+		local dir=$(basename "$directory")
+		if [[ -f "$directory"wp-content/debug.log ]]; then
+			echo "Linking default WP log for $dir"
+			if [[ ! -f logs/"$dir"-debug.log ]]; then
+				sudo ln -s "$directory"wp-content/debug.log logs/"$dir"-debug.log
+			else
+				echo "Log file for $dir already exists, moving on"
+			fi
+		fi
+	done
 
 	cd "$current"
 }
