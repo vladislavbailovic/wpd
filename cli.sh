@@ -15,12 +15,9 @@ if [ "" == "$TARGET" ]; then
 fi
 shift
 
+DOCKER_ARGS="-it"
 WPCLI_ARGS="$@"
-CMD=${2:-}
 
-if [ "$CMD" == "" ]; then
-	echo "tbd"
-else
-	# Generic fallthrough - pass everything to WP CLI
-	docker exec "$TARGET"wp wp "$WPCLI_ARGS"
-fi
+#echo "$WPCLI_ARGS"; exit;
+
+docker exec "$DOCKER_ARGS" "$TARGET"wp wp "$WPCLI_ARGS"

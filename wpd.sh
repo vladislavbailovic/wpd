@@ -59,7 +59,7 @@ function wdp_install_database {
 		echo "Creating $container with DB $dbname on $nextip :3306"
 		docker run --name "$container" -e MYSQL_ROOT_PASSWORD=password -e MYSQL_DATABASE="$dbname" -d -p "$nextip":3306:3306 mysql:5.7
 		wdp_backup_hosts "$1-install"
-		sudo echo "$nextip $container.dev #install" >> /etc/hosts
+		sudo echo "$nextip $container.test #install" >> /etc/hosts
 		echo "All done"
 	else
 		echo "Container $container already exists, won't install anything"
@@ -95,7 +95,7 @@ function wdp_install_wordpress {
 			-v "$WORKING"/projects/themes:/var/www/html/wp-content/themes \
 			"$WPDIMAGE"
 		wdp_backup_hosts "$1-install"
-		sudo echo "$nextip $container.dev #install" >> /etc/hosts
+		sudo echo "$nextip $container.test #install" >> /etc/hosts
 	else
 		echo "Container $container already exists, won't install anything"
 	fi
@@ -202,7 +202,7 @@ elif [ "backup-db" == "$CMD" ]; then
 	dbname="$TARGET"db
 	filename="$WORKING"/backup/"$dbname"-$(date +%Y-%m-%d.%H-%m).sql
 	wdp_start $dbname
-	mysqldump -u root -ppassword -h "$dbname.dev" "$TARGET" > "$filename"
+	mysqldump -u root -ppassword -h "$dbname.test" "$TARGET" > "$filename"
 	wc "$filename"
 elif [ "restore-db" == "$CMD" ]; then
 	echo "Restoring database"
@@ -211,8 +211,12 @@ elif [ "restore-db" == "$CMD" ]; then
 	filename=$(ls -r "$WORKING"/backup/"$dbname"*"$portion"*.sql | sed -n '1p')
 	if [[ ! -f "$filename" ]]; then exit; fi
 	echo "Restoring $TARGET DB from $filename"
-	mysql -u root -ppassword -h "$dbname.dev" "$TARGET" < "$filename"
+	mysql -u root -ppassword -h "$dbname.test" "$TARGET" < "$filename"
 	echo "All done restoring from $filename"
+elif [ "hubify" == "$CMD" ]; then
+	hname="$TARGET"wp
+	docker exec "$hname" /bin/bash -c 'echo "192.168.50.4 local.wpmudev.org" >> /etc/hosts'
+	docker exec "$hname" /bin/bash -c 'echo "127.0.0.1 '$hname'.test" >> /etc/hosts'
 else
 	wpd_usage
 fi
