@@ -27,7 +27,7 @@ function wpd_build_image {
 }
 
 function wdp_next_ip {
-	local oct=$(grep '127.0.0' /etc/hosts | awk '{ print $1 }' | sort -nr | sed -n '1 p' | cut -d . -f 4)
+	local oct=$(grep '127.0.0' /etc/hosts | awk '{ print $1 }' | sort -k4nr -t. | sed -n '1 p' | cut -d . -f 4)
 	let "oct++"
 	echo "127.0.0.$oct"
 }
