@@ -21,3 +21,7 @@ WPCLI_ARGS="$@"
 #echo "$WPCLI_ARGS"; exit;
 
 docker exec "$DOCKER_ARGS" "$TARGET"wp wp "$WPCLI_ARGS"
+
+# wp config create --dbhost="$TARGET"db.test --dbname="$TARGET" --dbuser=root --dbpass=pass
+#wp core install --url="$TARGET"wp.test --title="$TARGET" --admin_user=bog --admin_password=bog --admin_email=bog@localhost.loc
+

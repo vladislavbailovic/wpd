@@ -156,6 +156,11 @@ function wdp_hubify {
 	echo "Hubified."
 }
 
+function wdp_info {
+	ip=$(docker inspect "$TARGET"wp | grep '"IPAddress' | tail -n1 | awk -F'"' '{print $4}')
+	echo "WordPress runs on $ip"
+}
+
 WORKING=$(dirname $0)
 WORKING=$(readlink -m "$WORKING")
 TARGET=""
@@ -224,6 +229,8 @@ elif [ "restore-db" == "$CMD" ]; then
 	echo "All done restoring from $filename"
 elif [ "hubify" == "$CMD" ]; then
 	wdp_hubify
+elif [ "info" == "$CMD" ]; then
+	wdp_info
 else
 	wpd_usage
 fi
