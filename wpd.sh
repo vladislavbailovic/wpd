@@ -186,6 +186,7 @@ if [ "start" == "$CMD" ]; then
 	wdp_start "$TARGET"db
 	wdp_start "$TARGET"wp
 	wdp_hubify
+	wdp_info
 elif [ "stop" == "$CMD" ]; then
 	echo "Halting WordPress environment $TARGET"
 	wdp_stop "$TARGET"db
@@ -197,6 +198,7 @@ elif [ "restart" == "$CMD" ]; then
 	wdp_start "$TARGET"db
 	wdp_start "$TARGET"wp
 	wdp_hubify
+	wdp_info
 elif [ "toggle" == "$CMD" ]; then
 	echo "Toggling WordPress environment state for $TARGET"
 	wdp_toggle "$TARGET"db
