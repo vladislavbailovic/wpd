@@ -149,6 +149,13 @@ function wdp_toggle {
 	fi
 }
 
+function wdp_hubify {
+	hname="$TARGET"wp
+	docker exec "$hname" /bin/bash -c 'echo "192.168.50.4 local.wpmudev.org" >> /etc/hosts'
+	docker exec "$hname" /bin/bash -c 'echo "127.0.0.1 '$hname'.test" >> /etc/hosts'
+	echo "Hubified."
+}
+
 WORKING=$(dirname $0)
 WORKING=$(readlink -m "$WORKING")
 TARGET=""
@@ -173,6 +180,7 @@ if [ "start" == "$CMD" ]; then
 	echo "Booting WordPress environment $TARGET"
 	wdp_start "$TARGET"db
 	wdp_start "$TARGET"wp
+	wdp_hubify
 elif [ "stop" == "$CMD" ]; then
 	echo "Halting WordPress environment $TARGET"
 	wdp_stop "$TARGET"db
@@ -183,6 +191,7 @@ elif [ "restart" == "$CMD" ]; then
 	wdp_stop "$TARGET"wp
 	wdp_start "$TARGET"db
 	wdp_start "$TARGET"wp
+	wdp_hubify
 elif [ "toggle" == "$CMD" ]; then
 	echo "Toggling WordPress environment state for $TARGET"
 	wdp_toggle "$TARGET"db
@@ -214,9 +223,7 @@ elif [ "restore-db" == "$CMD" ]; then
 	mysql -u root -ppassword -h "$dbname.test" "$TARGET" < "$filename"
 	echo "All done restoring from $filename"
 elif [ "hubify" == "$CMD" ]; then
-	hname="$TARGET"wp
-	docker exec "$hname" /bin/bash -c 'echo "192.168.50.4 local.wpmudev.org" >> /etc/hosts'
-	docker exec "$hname" /bin/bash -c 'echo "127.0.0.1 '$hname'.test" >> /etc/hosts'
+	wdp_hubify
 else
 	wpd_usage
 fi
